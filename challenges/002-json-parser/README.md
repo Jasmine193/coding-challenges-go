@@ -1,379 +1,409 @@
-# 001 — wc
+# 002 — JSON Parser
 
-An implementation of the Unix `wc` command written in Go, as part of the [John Crickett Coding Challenges](https://codingchallenges.fyi/challenges/challenge-wc).
+A JSON parser implemented from scratch in Go, as part of the [John Crickett Coding Challenges](https://codingchallenges.fyi/challenges/challenge-json-parser).
 
-The goal of this challenge is to build a command-line utility that can count **bytes, lines, words, and characters** in a file.
+The goal of this challenge is to build a JSON parser without relying on Go's built-in `encoding/json` package for parsing. The challenge provides an opportunity to understand **lexical analysis, tokenisation, parsing, grammars, and recursive data structures**.
 
 ## Challenge
 
-The Unix `wc` command provides different options for counting the contents of a file.
+JSON (JavaScript Object Notation) is a lightweight data-interchange format commonly used for exchanging structured data.
 
-This implementation supports:
+The parser is being built incrementally, starting with the simplest valid JSON object and gradually adding support for strings, primitive values, objects, arrays, and more complex JSON structures.
 
-| Option | Description      |
-| ------ | ---------------- |
-| `-c`   | Count bytes      |
-| `-l`   | Count lines      |
-| `-w`   | Count words      |
-| `-m`   | Count characters |
-
-The executable is named `ccwc` to distinguish it from the system's existing `wc` command.
+The original challenge is divided into five steps.
 
 ## Requirements
 
-The implementation should support:
+The parser will progressively support:
 
-* Reading a file from the command line
-* Counting bytes using `-c`
-* Counting lines using `-l`
-* Counting words using `-w`
-* Counting characters using `-m`
-* Running without an option and displaying the default counts
-* Handling invalid or missing file paths
-* Supporting UTF-8 characters for character counting
+* Parsing an empty JSON object: `{}`
+* Parsing objects containing string keys and values
+* Parsing string, numeric, boolean, and null values
+* Parsing nested objects
+* Parsing arrays
+* Detecting invalid JSON
+* Returning useful parsing errors
+* Testing the parser against valid and invalid JSON inputs
 
 ## Project Structure
 
 ```text
-001-wc/
+002-json-parser/
 ├── README.md
-├── ccwc.go
-├── ccwc_test.go
+├── parser.go
+├── parser_test.go
 └── cmd/
-    └── ccwc/
+    └── json-parser/
         └── main.go
 ```
 
-### `cmd/ccwc/main.go`
+### `cmd/json-parser/main.go`
 
 The CLI entry point.
 
 It is responsible for:
 
-* Reading command-line arguments
-* Identifying the requested option
-* Reading the input file
-* Calling the appropriate counting function
-* Printing the result
+* Reading the input
+* Invoking the parser
+* Reporting whether the JSON is valid
+* Returning an appropriate exit code
 
-### `ccwc.go`
+### `parser.go`
 
-Contains the core counting logic:
+Contains the core parsing implementation.
 
-* `CountBytes`
-* `CountLines`
-* `CountWords`
-* `CountCharacters`
+The parser is responsible for:
 
-Keeping this logic separate from the CLI makes the functions easier to test independently.
+* Reading the input
+* Identifying JSON tokens
+* Validating the JSON structure
+* Building or validating the parsed representation
+* Reporting parsing errors
 
-### `ccwc_test.go`
+### `parser_test.go`
 
-Contains unit tests for the counting functions, including edge cases for word counting.
+Contains unit tests for the parser.
 
-## Implementation
+Tests cover both valid and invalid JSON and will be expanded as new parser functionality is implemented.
 
-### Byte counting
+## Implementation Approach
 
-The `-c` option counts the number of bytes in the file.
+The parser is being developed incrementally rather than trying to support the complete JSON specification from the beginning.
 
-The implementation uses:
+The general parsing pipeline is:
 
-```go
-len(data)
+```text
+JSON input
+    │
+    ▼
+Lexical analysis
+    │
+    ▼
+Tokens
+    │
+    ▼
+Parser
+    │
+    ▼
+JSON structure
+    │
+    ▼
+Valid / Invalid
 ```
 
-Since the file is read using `os.ReadFile`, the data is represented as a `[]byte`, making its length the number of bytes.
+### Lexical Analysis
 
-This is different from character counting when the file contains multibyte UTF-8 characters.
+Lexical analysis involves breaking the input into meaningful pieces, or **tokens**.
 
-### Line counting
+For JSON, these can include:
 
-The `-l` option counts newline characters (`\n`) in the file.
+```text
+{
+}
+[
+]
+:
+,
+string
+number
+true
+false
+null
+```
+
+The lexer focuses on answering:
+
+> "What are the meaningful pieces of this input?"
+
+### Parsing
+
+The parser takes those tokens and determines whether they form a valid JSON structure.
 
 For example:
 
-```text
-Hello
-World
-Go
+```json
+{}
 ```
 
-contains three newline-terminated lines.
+is valid because an object can contain zero members.
 
-### Word counting
+Whereas:
 
-The `-w` option counts whitespace-delimited words.
-
-The implementation uses an `inWord` state to determine when a new word begins.
-
-Conceptually:
-
-```text
-outside a word
-      │
-      │ non-whitespace
-      ▼
- inside a word
-      │
-      │ whitespace
-      ▼
-outside a word
+```json
+{
 ```
 
-A word is counted only when a non-whitespace character is encountered while currently outside a word.
+is invalid because the object is never closed.
 
-This prevents multiple consecutive whitespace characters from being counted as multiple words.
+The parser therefore focuses on answering:
+
+> "Do these tokens form a valid JSON structure?"
+
+## Challenge Progress
+
+### Step 1 — Empty Object
+
+Support the simplest possible JSON object:
+
+```json
+{}
+```
+
+The parser should:
+
+* Accept `{}` as valid JSON
+* Reject invalid JSON
+* Return exit code `0` for valid input
+* Return exit code `1` for invalid input
+
+Status:
+
+* [ ] Implemented
+* [ ] Tests added
+
+### Step 2 — String Values
+
+Support objects containing string keys and string values:
+
+```json
+{
+  "key": "value"
+}
+```
+
+The parser needs to understand:
+
+* Object delimiters `{` and `}`
+* String keys
+* String values
+* The `:` separator
+
+Status:
+
+* [ ] Implemented
+* [ ] Tests added
+
+### Step 3 — Primitive Values
+
+Extend the parser to support:
+
+```json
+{
+  "key1": true,
+  "key2": false,
+  "key3": null,
+  "key4": "value",
+  "key5": 101
+}
+```
+
+This introduces the following JSON value types:
+
+* String
+* Number
+* Boolean
+* Null
+
+Status:
+
+* [ ] Implemented
+* [ ] Tests added
+
+### Step 4 — Objects and Arrays
+
+Support objects and arrays as JSON values:
+
+```json
+{
+  "key": "value",
+  "key-n": 101,
+  "key-o": {},
+  "key-l": []
+}
+```
+
+This introduces recursive structures.
 
 For example:
 
-```text
-Hello     World
+```json
+{
+  "user": {
+    "name": "Jasmine"
+  },
+  "skills": [
+    "Go",
+    "Backend"
+  ]
+}
 ```
 
-contains:
+At this stage, the parser needs to handle nested objects and arrays.
 
-```text
-2 words
-```
+Status:
 
-rather than 6.
+* [ ] Implemented
+* [ ] Tests added
 
-### Character counting
+### Step 5 — Additional Testing
 
-The `-m` option counts characters rather than bytes.
+Add tests beyond the provided challenge cases.
 
-This distinction becomes important with UTF-8.
+The goal is to ensure the parser:
 
-For example:
+* Accepts valid JSON
+* Rejects malformed JSON
+* Produces useful errors
+* Handles nested structures
+* Handles edge cases
 
-```text
-😊
-```
+The original challenge also suggests testing against the JSON checker test suite once the parser is complete.
 
-occupies:
+Status:
 
-```text
-4 bytes
-1 Unicode code point
-```
-
-The implementation uses:
-
-```go
-utf8.RuneCount(data)
-```
-
-to count Unicode code points.
-
-Therefore, for multibyte UTF-8 text:
-
-```text
-byte count != character count
-```
+* [ ] Implemented
+* [ ] Tests added
 
 ## Usage
 
-### Build
-
-From the `001-wc` directory:
+Build the CLI:
 
 ```bash
-go build -o ccwc ./cmd/ccwc
+go build -o json-parser ./cmd/json-parser
 ```
 
-### Count bytes
+Run it against a JSON file:
 
 ```bash
-./ccwc -c test.txt
+./json-parser test.json
 ```
 
-### Count lines
+For valid JSON:
 
-```bash
-./ccwc -l test.txt
+```text
+Valid JSON
 ```
 
-### Count words
+For invalid JSON:
 
-```bash
-./ccwc -w test.txt
+```text
+Invalid JSON
 ```
 
-### Count characters
+The CLI should also return an appropriate process exit code:
 
-```bash
-./ccwc -m test.txt
+```text
+0 → valid JSON
+1 → invalid JSON
 ```
 
-### Default behavior
-
-The command can also be run without an option:
-
-```bash
-./ccwc test.txt
-```
-
-This outputs the line, word, and byte counts along with the filename.
-
-### Installing locally
-
-The command can be installed into Go's binary directory:
-
-```bash
-go install ./cmd/ccwc
-```
-
-Once the Go binary directory is included in the system `PATH`, the command can be run directly:
-
-```bash
-ccwc -c test.txt
-```
-
-## Comparing With Unix `wc`
-
-The implementation can be compared with the system's `wc` command.
-
-For example:
-
-```bash
-wc -c test.txt
-ccwc -c test.txt
-```
-
-```bash
-wc -l test.txt
-ccwc -l test.txt
-```
-
-```bash
-wc -w test.txt
-ccwc -w test.txt
-```
-
-```bash
-wc -m test.txt
-ccwc -m test.txt
-```
-
-Comparing the output is particularly useful for the `-m` option because character counting can depend on the current locale and multibyte character support.
+This makes the parser usable in shell scripts and automated tests.
 
 ## Testing
 
-Run all tests from the `001-wc` directory:
+Run all tests:
 
 ```bash
 go test ./...
 ```
 
-For verbose output:
+Run tests with verbose output:
 
 ```bash
 go test -v ./...
 ```
 
-The tests cover:
-
-* Byte counting
-* Line counting
-* Character counting
-* Multiple words
-* Multiple spaces
-* Newlines
-* Tabs
-* Leading whitespace
-* Trailing whitespace
-* Empty input
-* Input containing only whitespace
+As the parser progresses through each step, new test cases are added to verify the corresponding functionality.
 
 ## Key Learnings
 
-This challenge helped me understand several Go concepts:
+This challenge focuses on several important programming concepts.
 
-### `byte` vs `rune`
+### Lexical Analysis
 
-A `byte` represents one byte of data, while a `rune` represents a Unicode code point.
+Understanding how a raw input string can be broken into meaningful tokens.
 
-For ASCII text, characters generally occupy one byte. With UTF-8, a character can occupy multiple bytes.
+### Parsing
 
-For example:
+Understanding how tokens can be validated against a grammar to determine whether an input is structurally valid.
+
+### Recursive Parsing
+
+JSON naturally contains recursive structures:
+
+```json
+{
+  "user": {
+    "address": {
+      "city": "Bengaluru"
+    }
+  }
+}
+```
+
+Objects can contain objects, arrays can contain objects, and arrays can contain other arrays.
+
+This makes JSON a good practical example of recursive parsing.
+
+### State and Lookahead
+
+The parser needs to keep track of where it is in the input and determine what token or structure is expected next.
+
+For example, after:
+
+```json
+{
+  "name"
+```
+
+the parser should expect:
 
 ```text
-A    → 1 byte
-é    → 2 bytes
-😊   → 4 bytes
+:
 ```
 
-This makes the distinction between:
+followed by a JSON value.
+
+### Error Handling
+
+A parser isn't only responsible for accepting valid input.
+
+It also needs to reject invalid input and ideally provide enough information to understand what went wrong.
+
+## Design Decisions
+
+The parser is intentionally implemented from scratch rather than using:
 
 ```go
-len(data)
+encoding/json
 ```
 
-and:
+The purpose of the challenge is to understand how parsing works internally rather than simply deserialize JSON into Go structs.
 
-```go
-utf8.RuneCount(data)
-```
-
-important when implementing text-processing tools.
-
-### Command-line arguments
-
-The CLI uses:
-
-```go
-os.Args
-```
-
-to access arguments supplied from the terminal.
-
-For example:
-
-```bash
-ccwc -w test.txt
-```
-
-provides:
-
-```text
-os.Args[0] → ccwc
-os.Args[1] → -w
-os.Args[2] → test.txt
-```
-
-### State-based parsing
-
-The word counter uses an `inWord` state to determine when a new word begins.
-
-This is a simple example of state-based parsing and is useful for understanding how text-processing utilities can be implemented without relying on complex libraries.
-
-### Table-driven tests
-
-The word-count tests use Go's table-driven testing pattern, allowing multiple input/output cases to be tested using the same test logic.
+The implementation will therefore favor clarity and explicit parsing logic over using a high-level JSON library.
 
 ## Future Improvements
 
-Potential improvements to the current implementation include:
+Potential improvements after completing the challenge include:
 
-* More complete handling of whitespace characters
-* More robust command-line argument parsing
-* Support for multiple input files
-* Support for reading from standard input
-* Better error handling and usage messages
-* Matching the output formatting of Unix `wc` more closely
-* Additional tests using different Unicode characters and locales
+* More comprehensive Unicode string handling
+* JSON escape sequences
+* Better number parsing
+* More descriptive parse errors
+* Line and column information in errors
+* Additional malformed JSON test cases
+* Running the parser against a larger JSON compliance test suite
+* Separating lexer and parser into independent components
+* Building an AST or generic JSON value representation
 
 ## Status
 
-**Completed**
+**In Progress**
 
-Implemented:
+The parser is being implemented incrementally following the stages of the Coding Challenges specification.
 
-* [x] `-c` byte counting
-* [x] `-l` line counting
-* [x] `-w` word counting
-* [x] `-m` character counting
-* [x] Command-line interface
-* [x] Unit tests
-* [x] Comparison with Unix `wc`
+* [ ] Step 1 — Empty object
+* [ ] Step 2 — String values
+* [ ] Step 3 — Primitive values
+* [ ] Step 4 — Objects and arrays
+* [ ] Step 5 — Additional tests
